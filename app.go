@@ -46,7 +46,7 @@ import (
 const (
 	staticDir       = "static"
 	assumedTitleLen = 80
-	postsPerPage    = 10
+	postsPerPage    = 30
 
 	serverSoftware = "WriteFreely"
 	softwareURL    = "https://writefreely.org"
