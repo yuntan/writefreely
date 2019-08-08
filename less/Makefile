@@ -7,6 +7,7 @@ else ifeq ($(shell which lessc),/bin/lessc)
 else
 	LESSC=node_modules/.bin/lessc
 endif
+LESSC=lessc
 export LESSC
 
 CSSDIR=../static/css/
