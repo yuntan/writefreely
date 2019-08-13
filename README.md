@@ -3,7 +3,12 @@ blog.untan.xyzで使っているブログシステム．WriteFreelyを改造し�
 
 - fenced code blockの上部にファイル名を表示する機能を追加
 - Snapでパッケージングするためにsnapcraft.yamlを追加
-- トップページの記事数を10 -> 30に変更
+- トップページの記事数を10 → 30に変更
+
+## Building Snap
+```bash
+SNAPCRAFT_BUILD_ENVIRONMENT_MEMORY=4G snapcraft
+```
 
 ---
 
