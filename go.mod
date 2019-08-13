@@ -28,10 +28,7 @@ require (
 	github.com/gorilla/schema v1.0.2
 	github.com/gorilla/sessions v1.1.3
 	github.com/guregu/null v3.4.0+incompatible
-	github.com/ikeikeikeike/go-sitemap-generator v1.0.1
 	github.com/ikeikeikeike/go-sitemap-generator/v2 v2.0.2
-	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kylemcc/twitter-text-go v0.0.0-20180726194232-7f582f6736ec
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
@@ -59,11 +56,11 @@ require (
 	github.com/writeas/monday v0.0.0-20181024183321-54a7dd579219
 	github.com/writeas/nerds v1.0.0
 	github.com/writeas/openssl-go v1.0.0 // indirect
-	github.com/writeas/saturday v1.7.1
 	github.com/writeas/slug v1.2.0
 	github.com/writeas/web-core v1.0.0
 	github.com/writefreely/go-nodeinfo v1.2.0
-	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f // indirect
+	github.com/yuntan/blackfriday v0.0.0-20190812092200-1d52381de794
+	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f
 	golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1 // indirect
 	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006 // indirect
 	golang.org/x/sys v0.0.0-20190209173611-3b5209105503 // indirect

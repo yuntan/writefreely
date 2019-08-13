@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"github.com/microcosm-cc/bluemonday"
 	stripmd "github.com/writeas/go-strip-markdown"
-	"github.com/writeas/saturday"
+	"github.com/yuntan/blackfriday"
 	"github.com/writeas/web-core/stringmanip"
 	"github.com/writeas/writefreely/parse"
 	"html"
@@ -78,6 +78,7 @@ func applyMarkdownSpecial(data []byte, skipNoFollow bool, baseURL string) string
 	}
 	// Strip out bad HTML
 	policy := getSanitizationPolicy()
+	policy.AllowAttrs("class", "id", "data-name").Globally()
 	policy.RequireNoFollowOnLinks(!skipNoFollow)
 	outHTML := string(policy.SanitizeBytes(md))
 	// Strip newlines on certain block elements that render with them

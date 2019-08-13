@@ -29,7 +29,6 @@ import (
 	"github.com/writeas/web-core/auth"
 	"github.com/writeas/web-core/bots"
 	"github.com/writeas/web-core/log"
-	waposts "github.com/writeas/web-core/posts"
 	"github.com/writeas/writefreely/author"
 	"github.com/writeas/writefreely/config"
 	"github.com/writeas/writefreely/page"
@@ -524,7 +523,7 @@ func fetchCollectionPosts(app *App, w http.ResponseWriter, r *http.Request) erro
 	// Transform post bodies if needed
 	if r.FormValue("body") == "html" {
 		for _, p := range *coll.Posts {
-			p.Content = waposts.ApplyMarkdown([]byte(p.Content))
+			p.Content = applyMarkdown([]byte(p.Content), "")
 		}
 	}
 
