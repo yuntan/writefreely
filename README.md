@@ -1,3 +1,12 @@
+# blog.untan.xyz
+blog.untan.xyzで使っているブログシステム．WriteFreelyを改造している．
+
+- fenced code blockの上部にファイル名を表示する機能を追加
+- Snapでパッケージングするためにsnapcraft.yamlを追加
+- トップページの記事数を10 -> 30に変更
+
+---
+
 &nbsp;
 <p align="center">
 	<a href="https://writefreely.org"><img src="https://writefreely.org/img/writefreely.svg" width="350px" alt="WriteFreely" /></a>
