@@ -11,13 +11,14 @@
 package writefreely
 
 import (
+	"net/http"
+	"path/filepath"
+	"strings"
+
 	"github.com/gorilla/mux"
 	"github.com/writeas/go-webfinger"
 	"github.com/writeas/web-core/log"
 	"github.com/writefreely/go-nodeinfo"
-	"net/http"
-	"path/filepath"
-	"strings"
 )
 
 // InitStaticRoutes adds routes for serving static files.
@@ -143,6 +144,8 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 	write.HandleFunc("/admin", handler.Admin(handleViewAdminDash)).Methods("GET")
 	write.HandleFunc("/admin/users", handler.Admin(handleViewAdminUsers)).Methods("GET")
 	write.HandleFunc("/admin/user/{username}", handler.Admin(handleViewAdminUser)).Methods("GET")
+	write.HandleFunc("/admin/user/{username}/status", handler.Admin(handleAdminToggleUserStatus)).Methods("POST")
+	write.HandleFunc("/admin/user/{username}/passphrase", handler.Admin(handleAdminResetUserPass)).Methods("POST")
 	write.HandleFunc("/admin/pages", handler.Admin(handleViewAdminPages)).Methods("GET")
 	write.HandleFunc("/admin/page/{slug}", handler.Admin(handleViewAdminPage)).Methods("GET")
 	write.HandleFunc("/admin/update/config", handler.AdminApper(handleAdminUpdateConfig)).Methods("POST")
@@ -150,7 +153,8 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 
 	// Handle special pages first
 	write.HandleFunc("/login", handler.Web(viewLogin, UserLevelNoneRequired))
-	write.HandleFunc("/invite/{code}", handler.Web(handleViewInvite, UserLevelNoneRequired)).Methods("GET")
+	write.HandleFunc("/signup", handler.Web(handleViewLanding, UserLevelNoneRequired))
+	write.HandleFunc("/invite/{code}", handler.Web(handleViewInvite, UserLevelOptional)).Methods("GET")
 	// TODO: show a reader-specific 404 page if the function is disabled
 	write.HandleFunc("/read", handler.Web(viewLocalTimeline, UserLevelReader))
 	RouteRead(handler, UserLevelReader, write.PathPrefix("/read").Subrouter())
