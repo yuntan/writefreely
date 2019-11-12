@@ -27,12 +27,9 @@ parts:
     source-commit: 0f851a2c6b271a8ef7f99d715fa63a4bfcea4f0a
     override-build: |
       go get github.com/jteeuwen/go-bindata/go-bindata
-      # go get github.com/rakyll/statik
       export PATH=$PATH:$(go env GOPATH)/bin
       make ui build
-      mv cmd/writefreely/writefreely $SNAPCRAFT_PART_INSTALL
-    prime:
-    - writefreely
+      mv cmd/writefreely/writefreely pages static templates $SNAPCRAFT_PART_INSTALL
 
 apps:
   writefreely:
