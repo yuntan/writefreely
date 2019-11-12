@@ -7,7 +7,7 @@ sudo snap install node --channel=12/stable --classic
 sudo apt install -y build-essential sqlite3
 
 echo "==> clone"
-git clone https://github.com/yuntan/writefreely.git
+git clone --branch yuntan --depth 1 https://github.com/yuntan/writefreely.git
 cd writefreely
 
 echo "==> build"
