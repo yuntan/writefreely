@@ -534,7 +534,7 @@ func fetchCollectionPosts(app *App, w http.ResponseWriter, r *http.Request) erro
 	// Transform post bodies if needed
 	if r.FormValue("body") == "html" {
 		for _, p := range *coll.Posts {
-			p.Content = applyMarkdown([]byte(p.Content), "")
+			p.Content = applyMarkdown([]byte(p.Content), "", app.cfg)
 		}
 	}
 
