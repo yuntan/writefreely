@@ -13,8 +13,6 @@ node.yarn global add less less-plugin-clean-css # install lessc
 sudo apt update
 sudo apt install -y build-essential sqlite3
 
-echo "==> clone"
-git clone --branch yuntan --depth 1 https://github.com/yuntan/writefreely.git
 cd writefreely
 
 echo "==> build"
