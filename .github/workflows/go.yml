@@ -1,0 +1,36 @@
+name: Go
+
+on:
+  push:
+    branches: [ yuntan ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Build
+      run: make
+      
+    - name: Compress
+      run: |
+        mv cmd/writefreely/writefreely writefreely
+        tar cf writefreely.tar.gz writefreely static pages templates
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        path:  writefreely.tar.gz
