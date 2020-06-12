@@ -30,7 +30,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/gorilla/sessions"
 	"github.com/manifoldco/promptui"
-	"github.com/writeas/go-strip-markdown"
+	stripmd "github.com/writeas/go-strip-markdown"
 	"github.com/writeas/impart"
 	"github.com/writeas/web-core/auth"
 	"github.com/writeas/web-core/converter"
@@ -56,7 +56,7 @@ var (
 	debugging bool
 
 	// Software version can be set from git env using -ldflags
-	softwareVer = "0.11.1"
+	softwareVer = "0.12.0"
 
 	// DEPRECATED VARS
 	isSingleUser bool
@@ -70,8 +70,9 @@ type App struct {
 	cfg          *config.Config
 	cfgFile      string
 	keys         *key.Keychain
-	sessionStore *sessions.CookieStore
+	sessionStore sessions.Store
 	formDecoder  *schema.Decoder
+	updates      *updatesCache
 
 	timeline *localTimeline
 }
@@ -99,6 +100,14 @@ func (app *App) SetConfig(cfg *config.Config) {
 // SetKeys updates the App's Keychain to the given value.
 func (app *App) SetKeys(k *key.Keychain) {
 	app.keys = k
+}
+
+func (app *App) SessionStore() sessions.Store {
+	return app.sessionStore
+}
+
+func (app *App) SetSessionStore(s sessions.Store) {
+	app.sessionStore = s
 }
 
 // Apper is the interface for getting data into and out of a WriteFreely
@@ -210,6 +219,10 @@ func handleViewHome(app *App, w http.ResponseWriter, r *http.Request) error {
 		if u != nil {
 			// User is logged in, so show the Pad
 			return handleViewPad(app, w, r)
+		}
+
+		if app.cfg.App.Private {
+			return viewLogin(app, w, r)
 		}
 
 		if land := app.cfg.App.LandingPath(); land != "/" {
@@ -363,6 +376,8 @@ func Initialize(apper Apper, debug bool) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init keys: %s", err)
 	}
+	apper.App().InitUpdates()
+
 	apper.App().InitSession()
 
 	apper.App().InitDecoder()
@@ -673,6 +688,52 @@ func ResetPassword(apper Apper, username string) error {
 	// Do the update
 	log.Info("Updating...")
 	err = adminResetPassword(apper.App(), u, newPass)
+	if err != nil {
+		log.Error("%s", err)
+		os.Exit(1)
+	}
+	log.Info("Success.")
+	return nil
+}
+
+// DoDeleteAccount runs the confirmation and account delete process.
+func DoDeleteAccount(apper Apper, username string) error {
+	// Connect to the database
+	apper.LoadConfig()
+	connectToDatabase(apper.App())
+	defer shutdown(apper.App())
+
+	// check user exists
+	u, err := apper.App().db.GetUserForAuth(username)
+	if err != nil {
+		log.Error("%s", err)
+		os.Exit(1)
+	}
+	userID := u.ID
+
+	// do not delete the admin account
+	// TODO: check for other admins and skip?
+	if u.IsAdmin() {
+		log.Error("Can not delete admin account")
+		os.Exit(1)
+	}
+
+	// confirm deletion, w/ w/out posts
+	prompt := promptui.Prompt{
+		Templates: &promptui.PromptTemplates{
+			Success: "{{ . | bold | faint }}: ",
+		},
+		Label:     fmt.Sprintf("Really delete user : %s", username),
+		IsConfirm: true,
+	}
+	_, err = prompt.Run()
+	if err != nil {
+		log.Info("Aborted...")
+		os.Exit(0)
+	}
+
+	log.Info("Deleting...")
+	err = apper.App().db.DeleteAccount(userID)
 	if err != nil {
 		log.Error("%s", err)
 		os.Exit(1)

@@ -73,7 +73,7 @@ type (
 
 type Handler struct {
 	errors       *ErrorPages
-	sessionStore *sessions.CookieStore
+	sessionStore sessions.Store
 	app          Apper
 }
 
@@ -83,6 +83,7 @@ type ErrorPages struct {
 	NotFound            *template.Template
 	Gone                *template.Template
 	InternalServerError *template.Template
+	UnavailableError    *template.Template
 	Blank               *template.Template
 }
 
@@ -94,9 +95,10 @@ func NewHandler(apper Apper) *Handler {
 			NotFound:            template.Must(template.New("").Parse("{{define \"base\"}}<html><head><title>404</title></head><body><p>Not found.</p></body></html>{{end}}")),
 			Gone:                template.Must(template.New("").Parse("{{define \"base\"}}<html><head><title>410</title></head><body><p>Gone.</p></body></html>{{end}}")),
 			InternalServerError: template.Must(template.New("").Parse("{{define \"base\"}}<html><head><title>500</title></head><body><p>Internal server error.</p></body></html>{{end}}")),
+			UnavailableError:    template.Must(template.New("").Parse("{{define \"base\"}}<html><head><title>503</title></head><body><p>Service is temporarily unavailable.</p></body></html>{{end}}")),
 			Blank:               template.Must(template.New("").Parse("{{define \"base\"}}<html><head><title>{{.Title}}</title></head><body><p>{{.Content}}</p></body></html>{{end}}")),
 		},
-		sessionStore: apper.App().sessionStore,
+		sessionStore: apper.App().SessionStore(),
 		app:          apper,
 	}
 
@@ -111,6 +113,7 @@ func NewWFHandler(apper Apper) *Handler {
 		NotFound:            pages["404-general.tmpl"],
 		Gone:                pages["410.tmpl"],
 		InternalServerError: pages["500.tmpl"],
+		UnavailableError:    pages["503.tmpl"],
 		Blank:               pages["blank.tmpl"],
 	})
 	return h
@@ -549,6 +552,37 @@ func (h *Handler) All(f handlerFunc) http.HandlerFunc {
 	}
 }
 
+func (h *Handler) OAuth(f handlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.handleOAuthError(w, r, func() error {
+			// TODO: return correct "success" status
+			status := 200
+			start := time.Now()
+
+			defer func() {
+				if e := recover(); e != nil {
+					log.Error("%s:\n%s", e, debug.Stack())
+					impart.WriteError(w, impart.HTTPError{http.StatusInternalServerError, "Something didn't work quite right."})
+					status = 500
+				}
+
+				log.Info(h.app.ReqLog(r, status, time.Since(start)))
+			}()
+
+			err := f(h.app.App(), w, r)
+			if err != nil {
+				if err, ok := err.(impart.HTTPError); ok {
+					status = err.Status
+				} else {
+					status = 500
+				}
+			}
+
+			return err
+		}())
+	}
+}
+
 func (h *Handler) AllReader(f handlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.handleError(w, r, func() error {
@@ -732,6 +766,10 @@ func (h *Handler) handleHTTPError(w http.ResponseWriter, r *http.Request, err er
 			log.Info("handleHTTPErorr internal error render")
 			h.errors.InternalServerError.ExecuteTemplate(w, "base", pageForReq(h.app.App(), r))
 			return
+		} else if err.Status == http.StatusServiceUnavailable {
+			w.WriteHeader(err.Status)
+			h.errors.UnavailableError.ExecuteTemplate(w, "base", pageForReq(h.app.App(), r))
+			return
 		} else if err.Status == http.StatusAccepted {
 			impart.WriteSuccess(w, "", err.Status)
 			return
@@ -777,6 +815,25 @@ func (h *Handler) handleError(w http.ResponseWriter, r *http.Request, err error)
 		return
 	}
 	h.errors.InternalServerError.ExecuteTemplate(w, "base", pageForReq(h.app.App(), r))
+}
+
+func (h *Handler) handleOAuthError(w http.ResponseWriter, r *http.Request, err error) {
+	if err == nil {
+		return
+	}
+
+	if err, ok := err.(impart.HTTPError); ok {
+		if err.Status >= 300 && err.Status < 400 {
+			sendRedirect(w, err.Status, err.Message)
+			return
+		}
+
+		impart.WriteOAuthError(w, err)
+		return
+	}
+
+	impart.WriteOAuthError(w, impart.HTTPError{http.StatusInternalServerError, "This is an unhelpful error message for a miscellaneous internal error."})
+	return
 }
 
 func correctPageFromLoginAttempt(r *http.Request) string {

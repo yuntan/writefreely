@@ -10,6 +10,7 @@
 						<li class="separator"><hr /></li>
 						{{if .IsAdmin}}<li><a href="/admin">Admin</a></li>{{end}}
 						<li><a href="/me/settings">Settings</a></li>
+						<li><a href="/me/import">Import posts</a></li>
 						<li><a href="/me/export">Export</a></li>
 						<li class="separator"><hr /></li>
 						<li><a href="/me/logout">Log out</a></li>
@@ -32,6 +33,7 @@
 				<ul><li><a>{{.Username}}</a> <img class="ic-18dp" src="/img/ic_down_arrow_dark@2x.png" /><ul>
 						{{if .IsAdmin}}<li><a href="/admin">Admin dashboard</a></li>{{end}}
 						<li><a href="/me/settings">Account settings</a></li>
+						<li><a href="/me/import">Import posts</a></li>
 						<li><a href="/me/export">Export</a></li>
 						{{if .CanInvite}}<li><a href="/me/invites">Invite people</a></li>{{end}}
 						<li class="separator"><hr /></li>
@@ -95,11 +97,16 @@
 {{define "admin-header"}}
 <header class="admin">
 	<h1>Admin</h1>
-	<nav id="admin">
+	<nav id="admin" class="pager">
 		<a href="/admin" {{if eq .Path "/admin"}}class="selected"{{end}}>Dashboard</a>
+		<a href="/admin/settings" {{if eq .Path "/admin/settings"}}class="selected"{{end}}>Settings</a>
 		{{if not .SingleUser}}
 		<a href="/admin/users" {{if eq .Path "/admin/users"}}class="selected"{{end}}>Users</a>
 		<a href="/admin/pages" {{if eq .Path "/admin/pages"}}class="selected"{{end}}>Pages</a>
+		{{if .UpdateChecks}}<a href="/admin/updates" {{if eq .Path "/admin/updates"}}class="selected"{{end}}>Updates{{if .UpdateAvailable}}<span class="blip">!</span>{{end}}</a>{{end}}
+		{{end}}
+		{{if not .Forest}}
+		<a href="/admin/monitor" {{if eq .Path "/admin/monitor"}}class="selected"{{end}}>Monitor</a>
 		{{end}}
 	</nav>
 </header>

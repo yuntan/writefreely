@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 A Bunch Tell LLC.
+ * Copyright © 2018-2020 A Bunch Tell LLC.
  *
  * This file is part of WriteFreely.
  *
@@ -62,6 +62,7 @@ type (
 		TotalPosts int           `json:"total_posts"`
 		Owner      *User         `json:"owner,omitempty"`
 		Posts      *[]PublicPost `json:"posts,omitempty"`
+		Format     *CollectionFormat
 	}
 	DisplayCollection struct {
 		*CollectionObj
@@ -69,8 +70,7 @@ type (
 		IsTopLevel  bool
 		CurrentPage int
 		TotalPages  int
-		Format      *CollectionFormat
-		Suspended   bool
+		Silenced    bool
 	}
 	SubmittedCollection struct {
 		// Data used for updating a given collection
@@ -396,13 +396,13 @@ func newCollection(app *App, w http.ResponseWriter, r *http.Request) error {
 		}
 		userID = u.ID
 	}
-	suspended, err := app.db.IsUserSuspended(userID)
+	silenced, err := app.db.IsUserSilenced(userID)
 	if err != nil {
 		log.Error("new collection: %v", err)
 		return ErrInternalGeneral
 	}
-	if suspended {
-		return ErrUserSuspended
+	if silenced {
+		return ErrUserSilenced
 	}
 
 	if !author.IsValidUsername(app.cfg, c.Alias) {
@@ -486,7 +486,7 @@ func fetchCollection(app *App, w http.ResponseWriter, r *http.Request) error {
 			res.Owner = u
 		}
 	}
-	// TODO: check suspended
+	// TODO: check status for silenced
 	app.db.GetPostsCount(res, isCollOwner)
 	// Strip non-public information
 	res.Collection.ForPublic()
@@ -553,6 +553,13 @@ type CollectionPage struct {
 	PinnedPosts    *[]PublicPost
 	IsAdmin        bool
 	CanInvite      bool
+}
+
+func NewCollectionObj(c *Collection) *CollectionObj {
+	return &CollectionObj{
+		Collection: *c,
+		Format:     c.NewFormat(),
+	}
 }
 
 func (c *CollectionObj) ScriptDisplay() template.JS {
@@ -647,6 +654,16 @@ func processCollectionPermissions(app *App, cr *collectionReq, u *User, w http.R
 				uname = u.Username
 			}
 
+			// TODO: move this to all permission checks?
+			suspended, err := app.db.IsUserSilenced(c.OwnerID)
+			if err != nil {
+				log.Error("process protected collection permissions: %v", err)
+				return nil, err
+			}
+			if suspended {
+				return nil, ErrCollectionNotFound
+			}
+
 			// See if we've authorized this collection
 			authd := isAuthorizedForCollection(app, c.Alias, r)
 
@@ -694,11 +711,10 @@ func checkUserForCollection(app *App, cr *collectionReq, r *http.Request, isPost
 
 func newDisplayCollection(c *Collection, cr *collectionReq, page int) *DisplayCollection {
 	coll := &DisplayCollection{
-		CollectionObj: &CollectionObj{Collection: *c},
+		CollectionObj: NewCollectionObj(c),
 		CurrentPage:   page,
 		Prefix:        cr.prefix,
 		IsTopLevel:    isSingleUser,
-		Format:        c.NewFormat(),
 	}
 	c.db.GetPostsCount(coll.CollectionObj, cr.isCollOwner)
 	return coll
@@ -737,7 +753,7 @@ func handleViewCollection(app *App, w http.ResponseWriter, r *http.Request) erro
 	}
 	c.hostName = app.cfg.App.Host
 
-	suspended, err := app.db.IsUserSuspended(c.OwnerID)
+	silenced, err := app.db.IsUserSilenced(c.OwnerID)
 	if err != nil {
 		log.Error("view collection: %v", err)
 		return ErrInternalGeneral
@@ -747,6 +763,7 @@ func handleViewCollection(app *App, w http.ResponseWriter, r *http.Request) erro
 	if strings.Contains(r.Header.Get("Accept"), "application/activity+json") {
 		ac := c.PersonObject()
 		ac.Context = []interface{}{activitystreams.Namespace}
+		setCacheControl(w, apCacheTime)
 		return impart.RenderActivityJSON(w, ac, http.StatusOK)
 	}
 
@@ -799,10 +816,10 @@ func handleViewCollection(app *App, w http.ResponseWriter, r *http.Request) erro
 			log.Error("Error getting user for collection: %v", err)
 		}
 	}
-	if !isOwner && suspended {
+	if !isOwner && silenced {
 		return ErrCollectionNotFound
 	}
-	displayPage.Suspended = isOwner && suspended
+	displayPage.Silenced = isOwner && silenced
 	displayPage.Owner = owner
 	coll.Owner = displayPage.Owner
 
@@ -837,6 +854,19 @@ func handleViewCollection(app *App, w http.ResponseWriter, r *http.Request) erro
 	}()
 
 	return err
+}
+
+func handleViewMention(app *App, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	handle := vars["handle"]
+
+	remoteUser, err := app.db.GetProfilePageFromHandle(app, handle)
+	if err != nil || remoteUser == "" {
+		log.Error("Couldn't find user %s: %v", handle, err)
+		return ErrRemoteUserNotFound
+	}
+
+	return impart.HTTPError{Status: http.StatusFound, Message: remoteUser}
 }
 
 func handleViewCollectionTag(app *App, w http.ResponseWriter, r *http.Request) error {
@@ -908,7 +938,7 @@ func handleViewCollectionTag(app *App, w http.ResponseWriter, r *http.Request) e
 			return ErrCollectionNotFound
 		}
 	}
-	displayPage.Suspended = owner != nil && owner.IsSilenced()
+	displayPage.Silenced = owner != nil && owner.IsSilenced()
 	displayPage.Owner = owner
 	coll.Owner = displayPage.Owner
 	// Add more data
@@ -962,14 +992,14 @@ func existingCollection(app *App, w http.ResponseWriter, r *http.Request) error 
 		}
 	}
 
-	suspended, err := app.db.IsUserSuspended(u.ID)
+	silenced, err := app.db.IsUserSilenced(u.ID)
 	if err != nil {
 		log.Error("existing collection: %v", err)
 		return ErrInternalGeneral
 	}
 
-	if suspended {
-		return ErrUserSuspended
+	if silenced {
+		return ErrUserSilenced
 	}
 
 	if r.Method == "DELETE" {

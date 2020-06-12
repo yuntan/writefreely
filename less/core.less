@@ -532,12 +532,12 @@ pre, body#post article, #post .alert, #subpage .alert, body#collection article, 
 	margin-bottom: 1em;
 	p {
 		text-align: left;
-		line-height: 1.4;
+		line-height: 1.5;
 	}
 }
 textarea, pre, body#post article, body#collection article p {
 	&.norm, &.sans, &.wrap {
-		line-height: 1.4em;
+		line-height: 1.5;
 		white-space: pre-wrap;       /* CSS 3 */
 		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
 		white-space: -pre-wrap;      /* Opera 4-6 */
@@ -647,6 +647,23 @@ table.classy {
 	}
 }
 
+article table {
+	border-spacing: 0;
+	border-collapse: collapse;
+	width: 100%;
+	th {
+		border-width: 1px 1px 2px 1px;
+		border-style: solid;
+		border-color: #ccc;
+	}
+	td {
+		border-width: 0 1px 1px 1px;
+		border-style: solid;
+		border-color: #ccc;
+		padding: .25rem .5rem;
+	}
+}
+
 body#collection article, body#subpage article {
 	padding-top: 0;
 	padding-bottom: 0;
@@ -692,18 +709,19 @@ select.inputform, textarea.inputform {
 	border: 1px solid #999;
 }
 
-input, button, select.inputform, textarea.inputform {
+input, button, select.inputform, textarea.inputform, a.btn {
 	padding: 0.5em;
 	font-family: @serifFont;
 	font-size: 100%;
 	.rounded(.25em);
-	&[type=submit], &.submit {
+	&[type=submit], &.submit, &.cta {
 		border: 1px solid @primary;
 		background: @primary;
 		color: white;
 		.transition(0.2s);
 		&:hover {
 			background-color: lighten(@primary, 3%);
+			text-decoration: none;
 		}
 		&:disabled {
 			cursor: default;
@@ -801,9 +819,6 @@ input {
 	&.snug {
 		max-width: 40em;
 	}
-	&.regular {
-		font-size: 1em;
-	}
 	.app {
 		+ .app {
 			margin-top: 1.5em;
@@ -820,7 +835,7 @@ input {
 		font-weight: normal;
 	}
 	p {
-		line-height: 1.4;
+		line-height: 1.5;
 	}
 	li {
 		margin: 0.3em 0;
@@ -873,20 +888,6 @@ input {
 		.half {
 			margin: 0 0 1em 0;
 			text-align: center;
-		}
-	}
-	div.features {
-		margin-top: 1.5em;
-		text-align: center;
-		font-size: 0.86em;
-		ul {
-			text-align: left;
-			max-width: 26em;
-			margin-left: auto !important;
-			margin-right: auto !important;
-			li.soon, span.soon {
-				color: lighten(#111, 40%);
-			}
 		}
 	}
 	div.blurbs {
@@ -1014,7 +1015,7 @@ footer.contain-me {
 }
 
 li {
-	line-height: 1.4;
+	line-height: 1.5;
 
 	.item-desc, .prog-lang {
 		font-size: 0.6em;
@@ -1325,6 +1326,24 @@ form {
 		font-size: 0.86em;
 		line-height: 2;
 	}
+
+	&.prominent {
+		margin: 1em 0;
+
+		label {
+			font-weight: bold;
+		}
+		input, select {
+			width: 100%;
+		}
+		select {
+			font-size: 1em;
+			padding: 0.5rem;
+			display: block;
+			border-radius: 0.25rem;
+			margin: 0.5rem 0;
+		}
+	}
 }
 div.row {
 	display: flex;
@@ -1332,6 +1351,16 @@ div.row {
 	> div {
 		flex: 1;
 	}
+}
+
+.check, .blip {
+	font-size: 1.125em;
+	color: #71D571;
+}
+
+.ex.failure {
+	font-weight: bold;
+	color: @dangerCol;
 }
 
 @media all and (max-width: 450px) {
@@ -1400,7 +1429,7 @@ div.row {
 }
 
 @media all and (max-width: 600px) {
-	div.row {
+	div.row:not(.admin-actions) {
 		flex-direction: column;
 	}
 	.half {
